@@ -1,12 +1,9 @@
----
-title: "Manual Coding Rulebook"
-format: pdf
----
+# Manual Code Book
 
-## 1. Coding Book
+## 1. Codes and themes
 
 | Code | Theme | Assign 1 when the response mentions |
-|----|----|----|
+|------------------------|------------------------|------------------------|
 | `connection` | Getting to Know / Connection | Conversation, emotional connection, bonding, or getting to know someone. |
 | `romantic_intent` | Romantic Intent / Commitment | Romantic interest, dating intentions, relationships, or commitment. |
 | `planning` | Planning / Activity / Effort | Scheduling, activities, effort, spending intentional time together, or the "planned, paid for, paired off" criteria. |
