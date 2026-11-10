@@ -1,0 +1,356 @@
+---
+title: "STAT 251 Project Proposal"
+author:
+  - "John Andelin"
+  - "Jacob Mitchell"
+format: pdf
+date: 2026-10-30
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+## Research Questions
+
+### Principal question
+
+Among respondents in our BYU convenience sample, do the themes in written explanations differ between those who consider a scheduled Noncommittal Make-Out (NCMO) a date and those who do not?
+
+We will manually code the written explanations into a small set of themes using a shared codebook, then compare how often the themes appear in the Yes and No response groups.
+
+### Secondary questions
+
+1.  Is a respondent's Yes/No answer associated with their reported sex?
+2.  Is a respondent's Yes/No answer associated with their relationship status?
+
+## Data Source and Description
+
+We collected these data through a Google Forms survey shared with friends and students from our classes. Respondents were asked whether a scheduled NCMO is a date, why they answered that way, their sex, age, and current relationship status. There were 119 responses: 24 respondents answered Yes and 95 answered No. Because participants were not randomly selected, the sample may not represent all BYU students, so we cannot confidently generalize our findings to the entire BYU student population. The response data are not publicly available; we will email a copy to Dr. Sandholtz.
+
+### Raw Data Dictionary
+
+| Variable | Description | Type / Values |
+|----|----|----|
+| `Timestamp` | Date and time the response was submitted. | Date/time |
+| `Is a scheduled NCMO a date?` | Whether the respondent considers a scheduled NCMO a date. | Categorical: Yes, No |
+| `In one or two sentences explain why?` | The respondent’s written explanation. | String: free-text response |
+| `What is your sex?` | The respondent’s reported sex. | Categorical: Male, Female |
+| `What is your age?` | The respondent’s age selection. | Categorical (stored as a string): \< 18, 18–29, \> 30 |
+| `What is your currant relationship status?` | The respondent’s selected relationship status. | Categorical: Single, Talking, Official Romantic Relationship, Engaged, Married, Divored |
+
+## Exploratory Data Analysis
+
+Our convenience sample contains 119 responses: 24 respondents (20.2%) said that a scheduled NCMO is a date, and 95 (79.8%) said it is not. Because the Yes group is smaller, percentages should be considered alongside the number of respondents in each group.
+
+The following tables and plots compare responses by sex and relationship status, addressing our secondary questions. The bars show the Yes/No percentages within each group, and the tables show the counts behind those percentages.
+
+```{r}
+#| include: false
+suppressPackageStartupMessages(library(tidyverse))
+library(janitor)
+
+tbl <- read_csv("NCMO_data.csv", show_col_types = FALSE)
+
+clean_tbl <- tbl |>
+  set_names(c("date_time", "class", "why", "age", "r_status", "sex")) |>
+  select(-date_time)
+```
+
+### Overall response
+
+Most respondents answered No. This table shows the overall balance of Yes and No answers.
+
+```{r}
+response_summary <- clean_tbl |>
+  filter(!is.na(class)) |>
+  count(class, name = "n") |>
+  mutate(percent = n / sum(n)) |>
+  transmute(
+    Response = class,
+    Count = n,
+    Percent = scales::percent(percent, accuracy = 0.1)
+  )
+
+knitr::kable(
+  response_summary,
+  booktabs = TRUE,
+  caption = "Responses to whether a scheduled NCMO is a date"
+)
+```
+
+### Response by relationship status
+
+The response proportions vary across relationship-status groups. In this sample, Yes responses made up 28.6% of the Talking group and 26.2% of the Single group. The proportions were lower among Married respondents (9.1%) and respondents in an Official Romantic Relationship (8.0%). None of the four Engaged respondents answered Yes. Because some groups are small, the percentages should be read together with the counts in the table.
+
+```{r}
+relationship_summary <- clean_tbl |>
+  filter(!is.na(r_status), !is.na(class)) |>
+  count(r_status, class, name = "n") |>
+  group_by(r_status) |>
+  mutate(prop = n / sum(n)) |>
+  ungroup() |>
+  mutate(
+    status_plot = recode(
+      r_status,
+      "Official Romantic Relationship" = "Official relationship"
+    )
+  )
+
+relationship_table <- relationship_summary |>
+  transmute(
+    `Relationship status` = r_status,
+    Response = class,
+    Count = n,
+    `Percent within status` = scales::percent(prop, accuracy = 0.1)
+  )
+
+knitr::kable(
+  relationship_table,
+  booktabs = TRUE,
+  caption = "NCMO response counts and percentages by relationship status"
+)
+```
+
+```{r}
+#| fig-width: 7.5
+#| fig-height: 4.2
+#| out-width: 95%
+#| fig-align: center
+
+ggplot(
+  relationship_summary,
+  aes(
+    x = forcats::fct_reorder(status_plot, n, .fun = sum),
+    y = prop,
+    fill = class
+  )
+) +
+  geom_col(width = 0.68) +
+  coord_flip() +
+  scale_y_continuous(
+    labels = scales::label_percent(),
+    limits = c(0, 1),
+    expand = expansion(mult = c(0, 0.02))
+  ) +
+  labs(
+    title = "NCMO response by relationship status",
+    x = "Relationship status",
+    y = "Percent within group",
+    fill = "Response"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    axis.text.y = element_text(size = 10),
+    plot.title = element_text(size = 13),
+    plot.margin = margin(8, 12, 8, 8)
+  )
+```
+
+### Response by sex
+
+The Yes response proportions were similar across the two reported sex categories: 20.8% among Female respondents and 19.1% among Male respondents. The difference is small in this convenience sample.
+
+```{r}
+sex_summary <- clean_tbl |>
+  filter(!is.na(sex), !is.na(class)) |>
+  count(sex, class, name = "n") |>
+  group_by(sex) |>
+  mutate(prop = n / sum(n)) |>
+  ungroup()
+
+sex_table <- sex_summary |>
+  transmute(
+    Sex = sex,
+    Response = class,
+    Count = n,
+    `Percent within sex` = scales::percent(prop, accuracy = 0.1)
+  )
+
+knitr::kable(
+  sex_table,
+  booktabs = TRUE,
+  caption = "NCMO response counts and percentages by reported sex"
+)
+```
+
+```{r}
+#| fig-width: 7
+#| fig-height: 3
+#| out-width: 90%
+#| fig-align: center
+
+ggplot(
+  sex_summary,
+  aes(
+    x = forcats::fct_reorder(sex, n, .fun = sum),
+    y = prop,
+    fill = class
+  )
+) +
+  geom_col(width = 0.65) +
+  coord_flip() +
+  scale_y_continuous(
+    labels = scales::label_percent(),
+    limits = c(0, 1),
+    expand = expansion(mult = c(0, 0.02))
+  ) +
+  labs(
+    title = "NCMO response by reported sex",
+    x = "Reported sex",
+    y = "Percent within group",
+    fill = "Response"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    axis.text.y = element_text(size = 10),
+    plot.title = element_text(size = 13),
+    plot.margin = margin(8, 12, 8, 8)
+  )
+```
+
+### Preliminary themes in written explanations
+
+For preliminary EDA, we used keyword matches to flag possible themes in the written explanations. These are preliminary indicators of a mention, not final codes, and they do not show whether a respondent agreed or disagreed with the idea. One response can mention more than one theme, so the percentages below do not sum to 100%.
+
+The keyword search flagged planning, activity, or effort in 87.5% of Yes explanations and 43.2% of No explanations. Getting-to-know or connection terms appeared more often in No explanations (49.5%) than in Yes explanations (16.7%). Physical-focus terms appeared in 31.6% of No explanations and 12.5% of Yes explanations. These patterns are only an initial summary because keyword matching can miss a theme or flag a word used in a different context.
+
+```{r}
+theme_patterns <- c(
+  getting_to_know =
+    "get(ting)? to know|know each other|learn(ing)? about|conversation|talk(ing)?|emotional connection|connect",
+  romantic_commitment =
+    "romant\\w*|intent\\w*|interest\\w*|commit\\w*|relationship\\w*|marriage|married|future",
+  planning_activity =
+    "plan\\w*|schedul\\w*|activit\\w*|effort|paired off|paid for|spend(ing)? time|time together|dinner|movie|hike|ice cream|asked? out",
+  physical_focus =
+    "physical\\w*|make[- ]?out|kiss\\w*|hook\\w*|one[- ]night stand|lust|sexual\\w*|intimat\\w*"
+)
+
+prelim_codebook <- tibble(
+  theme = names(theme_patterns),
+  label = c(
+    "Getting to know / connection",
+    "Romantic intent / commitment",
+    "Planning / activity / effort",
+    "Physical focus"
+  ),
+  description = c(
+    "Learning about one another or emotional connection",
+    "Romantic interest, commitment, or relationship potential",
+    "Planning, activities, effort, or time together",
+    "Kissing, making out, or physical intimacy"
+  ),
+  keyword_cues = c(
+    "get to know, conversation, talk, connection",
+    "romantic, intent, interest, commitment, relationship",
+    "plan, schedule, activity, effort, time, dinner",
+    "physical, make-out, kissing, hookup, intimacy"
+  )
+)
+
+prelim_codebook |>
+  select(
+    Theme = label,
+    Description = description,
+    `Keyword cues` = keyword_cues
+  ) |>
+  knitr::kable(
+    booktabs = TRUE,
+    caption = "Provisional keyword-assisted codebook"
+  )
+
+coded_responses <- clean_tbl |>
+  mutate(
+    response = str_to_title(str_trim(as.character(class))),
+    why_text = str_to_lower(coalesce(as.character(why), "")),
+    getting_to_know = str_detect(
+      why_text, theme_patterns[["getting_to_know"]]
+    ),
+    romantic_commitment = str_detect(
+      why_text, theme_patterns[["romantic_commitment"]]
+    ),
+    planning_activity = str_detect(
+      why_text, theme_patterns[["planning_activity"]]
+    ),
+    physical_focus = str_detect(
+      why_text, theme_patterns[["physical_focus"]]
+    )
+  ) |>
+  filter(response %in% c("Yes", "No"))
+
+theme_summary <- coded_responses |>
+  select(response, all_of(names(theme_patterns))) |>
+  pivot_longer(
+    cols = all_of(names(theme_patterns)),
+    names_to = "theme",
+    values_to = "flagged"
+  ) |>
+  group_by(theme, response) |>
+  summarise(
+    responses_mentioning_theme = sum(flagged),
+    group_total = n(),
+    proportion = responses_mentioning_theme / group_total,
+    .groups = "drop"
+  ) |>
+  left_join(
+    prelim_codebook |> select(theme, label),
+    by = "theme"
+  )
+
+theme_summary |>
+  transmute(
+    Theme = label,
+    Response = response,
+    `Responses mentioning theme` = responses_mentioning_theme,
+    `Group total` = group_total,
+    `Percent within response group` =
+      scales::percent(proportion, accuracy = 0.1)
+  ) |>
+  knitr::kable(
+    booktabs = TRUE,
+    caption = "Preliminary theme mentions by Yes/No response"
+  )
+```
+
+```{r}
+#| fig-width: 7.5
+#| fig-height: 4.2
+#| out-width: 95%
+#| fig-align: center
+
+ggplot(
+  theme_summary,
+  aes(
+    x = forcats::fct_reorder(label, proportion, .fun = mean),
+    y = proportion,
+    fill = response
+  )
+) +
+  geom_col(position = position_dodge(width = 0.76), width = 0.66) +
+  coord_flip() +
+  scale_y_continuous(
+    labels = scales::label_percent(),
+    limits = c(0, 1),
+    expand = expansion(mult = c(0, 0.02))
+  ) +
+  labs(
+    title = "Preliminary explanation themes by response",
+    x = "Provisional theme",
+    y = "Percent within Yes/No group",
+    fill = "Response"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    axis.text.y = element_text(size = 9),
+    plot.title = element_text(size = 13),
+    plot.margin = margin(8, 12, 8, 8)
+  )
+```
+
+### Plan for the final codebook
+
+The keyword categories are only a starting point for exploring the explanations. To make the final codebook, we will read the responses and agree on a small set of recurring themes. We will write a clear definition and examples for each theme, along with rules for when to include or exclude a response. We will then code the responses independently, compare our decisions, discuss disagreements, and revise the rules as needed before finalizing the codes. A response may receive more than one code when it clearly includes multiple themes.

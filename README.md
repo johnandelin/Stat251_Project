@@ -11,3 +11,6 @@
 | `What is your sex?` | The respondent’s reported sex. | Categorical: Male, Female |
 | `What is your age?` | The respondent’s age selection. | Categorical (stored as a string): < 18, 18–29, > 30 |
 | `What is your currant relationship status?` | The respondent’s selected relationship status. | Categorical: Single, Talking, Official Romantic Relationship, Engaged, Married, Divored |
+
+## Code book for written responses
+
